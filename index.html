@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <!-- viewport-fit=cover 用于兼容全面屏手机的安全区 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090c12">
+  <title>熄灯了，蚊子出没</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- app 是最外层舞台；所有界面都叠放在这里，由 JS 切换 is-active -->
+  <div class="app" id="app">
+    <!-- 全局暗色宿舍氛围层，不参与交互 -->
+    <div class="ambient" aria-hidden="true">
+      <span class="ambient-glow ambient-glow--lamp"></span>
+      <span class="ambient-glow ambient-glow--moon"></span>
+      <span class="ambient-noise"></span>
+    </div>
+
+    <main class="screens">
+      <!-- ========== 开始界面 ========== -->
+      <section id="start-screen" class="screen start-screen is-active" aria-labelledby="game-title">
+        <div class="start-scene" aria-hidden="true">
+          <span class="curtain curtain--left"></span>
+          <span class="curtain curtain--right"></span>
+          <span class="poster">别<br>吵</span>
+          <span class="desk-lamp"></span>
+        </div>
+
+        <div class="start-content">
+          <p class="eyebrow">DORM 404 · 23:59</p>
+          <h1 id="game-title" class="game-title">
+            <span>熄灯了，</span>
+            <span>蚊子出没</span>
+          </h1>
+          <p class="tagline">别开灯，别喊室友。用掌心结束这场战争。</p>
+
+          <ul class="rule-list" aria-label="游戏规则">
+            <li class="rule-chip"><b>30 秒</b><span>一局，别磨蹭</span></li>
+            <li class="rule-chip"><b>连击加倍</b><span>每 3 连涨一档</span></li>
+            <li class="rule-chip"><b>室友脸</b><span>双倍分，但会掉好感</span></li>
+          </ul>
+
+          <p class="best-line">历史最高 <strong id="start-best">0</strong> 分</p>
+          <button id="start-btn" class="btn btn--primary btn--large" type="button">开拍！</button>
+          <p class="start-hint">点击 / 触屏都能拍 · 拍空 3 次要扣分</p>
+        </div>
+      </section>
+
+      <!-- ========== 游戏界面 ========== -->
+      <section id="game-screen" class="screen game-screen" aria-label="游戏进行中">
+        <!-- 顶部状态栏 -->
+        <header class="game-hud">
+          <div class="hud-card">
+            <span class="hud-label">得分</span>
+            <strong id="score-value" class="hud-value">0</strong>
+          </div>
+          <div class="hud-card hud-card--timer">
+            <span class="hud-label">剩余时间</span>
+            <strong id="time-value" class="hud-value">30</strong>
+            <span class="timer-track"><span id="timer-fill" class="timer-fill"></span></span>
+          </div>
+          <div class="hud-card">
+            <span class="hud-label">当前连击</span>
+            <strong id="combo-value" class="hud-value">0</strong>
+            <span id="combo-mult" class="combo-mult">倍率 x1</span>
+          </div>
+        </header>
+
+        <!-- 室友好感度：拍到脸上的蚊子会扣除，归零直接结束 -->
+        <div id="affinity-panel" class="affinity-panel">
+          <div class="affinity-head">
+            <span>室友好感度</span>
+            <strong id="affinity-label">他还在装睡</strong>
+          </div>
+          <span class="affinity-track"><span id="affinity-fill" class="affinity-fill"></span></span>
+        </div>
+
+        <!-- 游戏场地：所有点击都在这里判定 -->
+        <div id="playfield" class="playfield" aria-label="打蚊子区域">
+          <!-- 纯 CSS 宿舍布景 -->
+          <div class="room-decor" aria-hidden="true">
+            <div class="window">
+              <span class="moon"></span>
+              <span class="star star--1"></span>
+              <span class="star star--2"></span>
+              <span class="star star--3"></span>
+            </div>
+            <div class="desk">
+              <span class="lamp"><i></i></span>
+              <span class="book"></span>
+              <span class="cup"></span>
+            </div>
+            <div class="bed"><span class="blanket"></span></div>
+          </div>
+
+          <!-- 室友的脸：蚊子会偶尔落在这里 -->
+          <div id="roommate" class="roommate" aria-hidden="true">
+            <span class="pillow"></span>
+            <span class="face">
+              <span class="eyes"><i></i><i></i></span>
+              <span class="mouth"></span>
+              <span class="cheek cheek--left"></span>
+              <span class="cheek cheek--right"></span>
+            </span>
+            <span class="snore">Zzz</span>
+          </div>
+
+          <!-- 蚊子：完全由 CSS 形状绘制，JS 控制位置 -->
+          <div id="mosquito" class="mosquito" role="img" aria-label="正在飞行的蚊子">
+            <span class="splat-mark"></span>
+            <span class="wing wing--left"></span>
+            <span class="wing wing--right"></span>
+            <span class="legs"><i></i><i></i><i></i><i></i></span>
+            <span class="body"></span>
+            <span class="head"></span>
+            <span class="eye"></span>
+            <span class="proboscis"></span>
+          </div>
+
+          <!-- 拍中残影、飘分等短生命周期特效都挂在这里 -->
+          <div id="effects-layer" class="effects-layer" aria-hidden="true"></div>
+          <p class="field-tip">点击任意位置挥掌 · 连拍有惊喜</p>
+        </div>
+
+        <p class="game-footer">别打室友的脸……除非你想出名。</p>
+      </section>
+
+      <!-- ========== 结算界面 ========== -->
+      <section id="result-screen" class="screen result-screen" aria-labelledby="result-title">
+        <div class="result-card">
+          <p class="result-kicker">本 局 战 报</p>
+          <h2 id="result-title">战斗结束</h2>
+          <p id="fail-reason" class="fail-reason" hidden></p>
+
+          <div class="score-big">
+            <span>本局得分</span>
+            <strong id="final-score">0</strong>
+          </div>
+
+          <div class="result-grid">
+            <div class="stat">
+              <span>最高连击</span>
+              <strong id="final-combo">0</strong>
+            </div>
+            <div class="stat">
+              <span>历史最高</span>
+              <strong id="final-best">0</strong>
+            </div>
+          </div>
+
+          <p id="new-best" class="new-best" hidden>新纪录！室友看了都想转学</p>
+          <p id="verdict" class="verdict">蚊子赢了，它今晚睡得很香</p>
+
+          <div class="result-actions">
+            <button id="restart-btn" class="btn btn--primary" type="button">再来一局</button>
+            <button id="back-btn" class="btn btn--secondary" type="button">回到宿舍</button>
+          </div>
+          <p class="result-note">最高分已保存在本机</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- 连击提示与红色描边闪烁，覆盖在整个游戏舞台之上 -->
+    <div id="combo-banner" class="combo-banner" aria-live="polite"></div>
+    <div id="edge-flash" class="edge-flash" aria-hidden="true"></div>
+  </div>
+
+  <!-- 使用普通 script + defer，保证 file:// 直接打开也能运行 -->
+  <script defer src="game.js"></script>
+</body>
+</html>
